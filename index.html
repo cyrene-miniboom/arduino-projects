@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>传感器综合实验</title>
+  <title>超声波模拟倒车雷达 · 物联网实验</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- 代码高亮，可选 -->
+  <!-- 代码高亮 -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
@@ -14,8 +14,8 @@
 </head>
 <body>
   <header class="hero">
-    <h1>arduino项目实践</h1>
-    <p>由arduino模拟的倒车雷达</p>
+    <h1>🚗 超声波模拟倒车雷达</h1>
+    <p>基于 Arduino + HC‑SR04 + MQTT 的物联网教学实验</p>
 
     <div class="actions">
       <a href="https://github.com/cyrene-miniboom/arduino-projects" target="_blank">
@@ -29,96 +29,105 @@
 
   <main>
     <section id="demo" class="card">
-      <h2>项目演示图片</h2>
+      <h2>📸 项目实物图</h2>
       <img
-              src="picture/IMG_20250608_191339(1).jpg"
-              style="width: 100%; max-width: 600px; height: auto;"
-              alt="整体构成"
-              loading="lazy"
+        src="picture/IMG_20250608_191339(1).jpg"
+        style="width: 100%; max-width: 600px; height: auto;"
+        alt="整体硬件连接：Arduino Mega、超声波传感器、LCD1602、蜂鸣器、RGBLED"
+        loading="lazy"
       />
-      
+      <p style="margin-top: 0.8rem; color: #555;">
+        <em>硬件组成：Arduino Mega 开发板 + HC‑SR04 超声波传感器 + LCD1602 I²C 显示屏 + 蜂鸣器 + RGBLED 彩灯</em>
+      </p>
     </section>
 
     <section class="card">
-      <h2>核心代码展示</h2>
+      <h2>🧩 核心功能特点</h2>
+      <ul>
+        <li><strong>精准测距</strong> – 利用超声波回波时间差，结合声速温度补偿公式，实时计算障碍物距离（cm）。</li>
+        <li><strong>分级声光报警</strong> – 距离小于 20 cm 时，蜂鸣器鸣叫且 LED 闪烁；距离越近，报警频率越高（延迟时间 = 距离 × 20 ms）。</li>
+        <li><strong>LCD 实时显示</strong> – 通过 I²C 接口驱动 20×4 液晶屏，清晰打印当前距离数值。</li>
+        <li><strong>物联网数据上传</strong> – 通过 Python + paho‑MQTT 将串口距离数据发布至云端服务器（如 EMQX），模拟智能驾驶汽车“端‑云”通信。</li>
+        <li><strong>教学友好设计</strong> – 鼓励学生使用 AI 大模型辅助生成 MQTT 代码，培养数字化学习与创新思维。</li>
+      </ul>
+    </section>
 
-      <pre><code class="language-js">
-#include <LiquidCrystal_I2C.h>
+    <section class="card">
+      <h2>⚙️ Arduino 核心代码（测距与报警逻辑）</h2>
+      <pre><code class="language-cpp">
+#include &lt;LiquidCrystal_I2C.h&gt;
 #define I2C_ADDR 0x27
 #define LCD_COLUMNS 20
 #define LCD_LINES 4
 
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_LINES);
 
-float cm;
-float inches;
-const float BETA = 3950;
-
 void setup() {
-    // Init
     lcd.init();
     lcd.backlight();
     Serial.begin(9600);
 
-    pinMode(7, OUTPUT);
-    pinMode(13, OUTPUT);
-    pinMode(3, OUTPUT);
-    pinMode(2, INPUT);
+    pinMode(7, OUTPUT);   // 蜂鸣器
+    pinMode(13, OUTPUT);  // RGBLED 信号
+    pinMode(3, OUTPUT);   // Trig
+    pinMode(2, INPUT);    // Echo
 }
 
 void loop() {
-    float celsius = 25;
-
-    float speed = 0.033145 * sqrt((273.15 + celsius) / 273.15);
+    float celsius = 25;   // 默认室温
+    float speed = 0.033145 * sqrt((273.15 + celsius) / 273.15); // cm/μs
 
     digitalWrite(3, HIGH);
     delayMicroseconds(10);
     digitalWrite(3, LOW);
 
     int duration = pulseIn(2, HIGH);
-
     float distance = (duration * speed) / 2;
 
     Serial.print("Distance: ");
     Serial.print(distance);
     Serial.println(" cm");
 
+    // 距离小于 20 cm 触发报警，频率随距离减小而加快
     if (distance < 20) {
         digitalWrite(13, HIGH);
-        tone(7, 261);
-        int times = distance * 20;
+        tone(7, 261);                // 发声音调 261Hz
+        int times = distance * 20;   // 延迟时间与距离挂钩
         delay(times);
         digitalWrite(13, LOW);
         noTone(7);
     }
 
     lcd.setCursor(0, 0);
-    lcd.print("distance:");
+    lcd.print("Distance:");
     lcd.setCursor(10, 0);
     lcd.print(distance);
+    lcd.print(" cm   ");
 
     delay(10);
 }
       </code></pre>
+      <p style="font-size: 0.9rem; color: #666;">
+        💡 完整项目还包括 Python MQTT 客户端代码，用于将数据发送至云端，详见 GitHub 仓库。
+      </p>
     </section>
 
     <section class="card">
-      <h2>功能特点</h2>
+      <h2>📚 教学实验设计</h2>
       <ul>
-        <li>支持wifi远程控制</li>
-        <li>支持显示屏变更表情，文字</li>
-        <li>可加装多种传感器</li>
+        <li><strong>适用对象</strong>：高中物联网课程，具备 Arduino / Python 基础的学生。</li>
+        <li><strong>分组协作</strong>：硬件搭建与代码实现分工合作，完成后互相讲解原理。</li>
+        <li><strong>AI 辅助学习</strong>：利用大模型生成 MQTT 通信模板，引导学生理解并修改，锻炼自学能力。</li>
+        <li><strong>跨学科融合</strong>：超声波测距公式（物理）与温度补偿计算，体现 STEM 综合素养。</li>
       </ul>
     </section>
   </main>
 
   <footer>
-    <p>© 2026 cyrene-miniboom</p>
+    <p>© 2026 cyrene-miniboom · 基于高中物联网校本课程实验</p>
   </footer>
 
   <script src="main.js"></script>
-
-  <!-- 代码高亮，可选 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script>
     hljs.highlightAll();
